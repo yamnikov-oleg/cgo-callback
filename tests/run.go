@@ -535,7 +535,7 @@ func main() {
 		cg  *os.File
 		ctg *os.File
 
-		success bool
+		success bool = true
 	)
 
 	prepare := func() {
