@@ -5,16 +5,17 @@ import "C"
 import (
 	"fmt"
 	"reflect"
+	"unsafe"
 )
 
 type kind int
 
 const (
-	invalid  kind = iota
-	signed        // Signed integers
-	unsigned      // Unsigned integers and pointers
-	singlePrec    // Single-precision float
-	doublePrec    // Double-precision float
+	invalid    kind = iota
+	signed          // Signed integers
+	unsigned        // Unsigned integers and pointers
+	singlePrec      // Single-precision float
+	doublePrec      // Double-precision float
 )
 
 func kindFromReflect(k reflect.Kind) kind {
@@ -105,4 +106,9 @@ func New(f interface{}) uintptr {
 	ctx.port = findNextPort()
 	ctxs[ctx.port] = &ctx
 	return uintptr(C.cgo_callback_get_port_addr(C.uint(ctx.port)))
+}
+
+func Remove(ptr uintptr) {
+	port := C.cgo_callback_get_port_id(unsafe.Pointer(ptr))
+	delete(ctxs, uint(port))
 }
