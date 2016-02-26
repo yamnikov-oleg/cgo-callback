@@ -38,9 +38,12 @@ func cgo_callback_go_entry(call *C.cgo_callback_call_t) {
 		case unsigned:
 			u := C.cgo_callback_conv_get_arg_uint(call, C.int(val.size*8))
 			args = append(args, reflect.ValueOf(u).Convert(val.reft))
-			// case float:
-			// 	f := C.cgo_callback_conv_get_arg_float(call, C.int(val.size*8))
-			// 	args = append(args, reflect.Value(f))
+		case singlePrec:
+			f := C.cgo_callback_conv_get_arg_single(call)
+			args = append(args, reflect.ValueOf(f).Convert(val.reft))
+		case doublePrec:
+			f := C.cgo_callback_conv_get_arg_double(call)
+			args = append(args, reflect.ValueOf(f).Convert(val.reft))
 		}
 	}
 	ctx.fn.Call(args)

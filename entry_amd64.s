@@ -17,15 +17,15 @@ cgo_callback_asm_entry:
 	// Some of these registers are callee-saved on different calling conventions,
 	// some of them are used to pass arguments or return values.
 	// It's easier to store all of them to support every possible conv.
-	// sub $0x80, %rsp
-	// movdqu %xmm7, 0x70(%rsp)
-	// movdqu %xmm6, 0x60(%rsp)
-	// movdqu %xmm5, 0x50(%rsp)
-	// movdqu %xmm4, 0x40(%rsp)
-	// movdqu %xmm3, 0x30(%rsp)
-	// movdqu %xmm2, 0x20(%rsp)
-	// movdqu %xmm1, 0x10(%rsp)
-	// movdqu %xmm0, 0x00(%rsp)
+	sub $0x80, %rsp
+	movdqu %xmm7, 0x70(%rsp)
+	movdqu %xmm6, 0x60(%rsp)
+	movdqu %xmm5, 0x50(%rsp)
+	movdqu %xmm4, 0x40(%rsp)
+	movdqu %xmm3, 0x30(%rsp)
+	movdqu %xmm2, 0x20(%rsp)
+	movdqu %xmm1, 0x10(%rsp)
+	movdqu %xmm0, 0x00(%rsp)
 	push %r15
 	push %r14
 	push %r13
@@ -63,15 +63,15 @@ cgo_callback_asm_entry:
 	pop %r13
 	pop %r14
 	pop %r15
-	// movdqu 0x00(%rsp), %xmm0
-	// movdqu 0x10(%rsp), %xmm1
-	// movdqu 0x20(%rsp), %xmm2
-	// movdqu 0x30(%rsp), %xmm3
-	// movdqu 0x40(%rsp), %xmm4
-	// movdqu 0x50(%rsp), %xmm5
-	// movdqu 0x60(%rsp), %xmm6
-	// movdqu 0x70(%rsp), %xmm7
-	// add $0x80, %rsp
+	movdqu 0x00(%rsp), %xmm0
+	movdqu 0x10(%rsp), %xmm1
+	movdqu 0x20(%rsp), %xmm2
+	movdqu 0x30(%rsp), %xmm3
+	movdqu 0x40(%rsp), %xmm4
+	movdqu 0x50(%rsp), %xmm5
+	movdqu 0x60(%rsp), %xmm6
+	movdqu 0x70(%rsp), %xmm7
+	add $0x80, %rsp
 
 	pop %rbp
 	// Discard 8 bytes from the stack, containing address of the port instruction.

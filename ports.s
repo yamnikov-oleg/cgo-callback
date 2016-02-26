@@ -20,3 +20,8 @@ cgo_callback_ports:
 	call cgo_callback_asm_entry
 	call cgo_callback_asm_entry
 	call cgo_callback_asm_entry
+	call cgo_callback_asm_entry
+	call cgo_callback_asm_entry
+	call cgo_callback_asm_entry
+	call cgo_callback_asm_entry
+	call cgo_callback_asm_entry

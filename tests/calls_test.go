@@ -54,3 +54,25 @@ func TestVoid_IntInt(t *testing.T) {
 		t.Errorf("Bad call. Expected %v, got %v", expected2, set2)
 	}
 }
+
+func TestVoid_Float(t *testing.T) {
+	var set float32
+	const expected float32 = 3.14
+	Void_Float(func(arg float32){
+		set = arg
+	}, expected)
+	if set != expected {
+		t.Errorf("Bad call. Expected %v, got %v", expected, set)
+	}
+}
+
+func TestVoid_Double(t *testing.T) {
+	var set float64
+	const expected float64 = 3.14
+	Void_Double(func(arg float64){
+		set = arg
+	}, expected)
+	if set != expected {
+		t.Errorf("Bad call. Expected %v, got %v", expected, set)
+	}
+}

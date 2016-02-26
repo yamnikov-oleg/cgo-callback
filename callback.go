@@ -13,7 +13,8 @@ const (
 	invalid  kind = iota
 	signed        // Signed integers
 	unsigned      // Unsigned integers and pointers
-	float         // Floating-point numbers
+	singlePrec    // Single-precision float
+	doublePrec    // Double-precision float
 )
 
 func kindFromReflect(k reflect.Kind) kind {
@@ -34,9 +35,11 @@ func kindFromReflect(k reflect.Kind) kind {
 		reflect.UnsafePointer:
 		return unsigned
 
-	case reflect.Float32,
-		reflect.Float64:
-		return float
+	case reflect.Float32:
+		return singlePrec
+
+	case reflect.Float64:
+		return doublePrec
 
 	default:
 		return invalid

@@ -41,7 +41,8 @@ typedef struct {
 // Each platform must have its implementation of these functions.
 int64_t cgo_callback_conv_get_arg_int(cgo_callback_call_t *call, int bits);
 uint64_t cgo_callback_conv_get_arg_uint(cgo_callback_call_t *call, int bits);
-// double cgo_callback_conv_get_arg_float(cgo_callback_call_t *call, int bits);
+float cgo_callback_conv_get_arg_single(cgo_callback_call_t *call);
+double cgo_callback_conv_get_arg_double(cgo_callback_call_t *call);
 
 // Set the return value of the specified type and size.
 // Each platform must have its implementation of this function.

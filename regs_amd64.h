@@ -18,11 +18,11 @@
 #define R14 0x60
 #define R15 0x68
 
-// #define XMM0 0x70
-// #define XMM1 0x80
-// #define XMM2 0x90
-// #define XMM3 0x100
-// #define XMM4 0x110
-// #define XMM5 0x120
-// #define XMM6 0x130
-// #define XMM7 0x140
+#define XMM0 0x70
+#define XMM1 0x80
+#define XMM2 0x90
+#define XMM3 0x100
+#define XMM4 0x110
+#define XMM5 0x120
+#define XMM6 0x130
+#define XMM7 0x140
