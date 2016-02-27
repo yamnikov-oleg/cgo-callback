@@ -292,6 +292,10 @@ func (c TypeCombo) CgoCall(withPtr bool) string {
 type Func struct {
 	RetType TypePtr
 	Args    TypeCombo
+
+	GenRandom bool
+	MaxGens   uint64
+	Gens      map[uint64]struct{}
 }
 
 func NewFunc(argnum int) *Func {
@@ -339,12 +343,65 @@ func FuncFromShortNotation(s string) *Func {
 	}
 }
 
+func (f *Func) GenerateRandomly(maxnum uint64) {
+	if maxnum > AllPossibleFuncs() {
+		maxnum = AllPossibleFuncs()
+	}
+
+	f.GenRandom = true
+	f.MaxGens = maxnum
+	f.Gens = make(map[uint64]struct{})
+}
+
+// Generate unique number for this combination of return
+// and arguments types
+func (f *Func) Stamp() (n uint64) {
+	n = uint64(f.RetType + 1)
+	for _, t := range f.Args.NonVoid() {
+		n = uint64(len(Types)+1)*n + uint64(t)
+	}
+	return
+}
+
 func (f *Func) Next() bool {
+	if f.GenRandom {
+		return f.NextRandom()
+	} else {
+		return f.NextSeq()
+	}
+}
+
+func (f *Func) NextSeq() bool {
 	if !f.RetType.Next() {
 		f.RetType = -1
 		return f.Args.Next()
 	}
 	return true
+}
+
+func (f *Func) NextRandom() bool {
+	if len(f.Gens) == int(f.MaxGens) {
+		return false
+	}
+	for {
+		f.Randomize()
+		if _, ok := f.Gens[f.Stamp()]; !ok {
+			break
+		}
+	}
+	f.Gens[f.Stamp()] = struct{}{}
+	return true
+}
+
+func (f *Func) Randomize() {
+	f.RetType = TypePtr(rand.Intn(len(Types)+1) - 1)
+	argnum := rand.Intn(len(f.Args) + 1)
+	for i := 0; i < argnum; i++ {
+		f.Args[i] = TypePtr(rand.Intn(len(Types)))
+	}
+	if argnum < len(f.Args) {
+		f.Args[argnum] = -1
+	}
 }
 
 func (f *Func) Void() bool {
@@ -491,6 +548,7 @@ var (
 	FuncsPerTest uint
 	MaxArgs      uint
 	OnlyGen      bool
+	MaxRandom    uint
 
 	SpecTest string
 	SpecFile string
@@ -502,20 +560,40 @@ func init() {
 	flag.UintVar(&FuncsPerTest, "fn", 100, "Number of functions to generate per test run")
 	flag.UintVar(&MaxArgs, "arg", 3, "Maximum number of arguments to test")
 	flag.BoolVar(&OnlyGen, "gen", false, "Generate tests but not run")
+	flag.UintVar(&MaxRandom, "rand", 0, "Do not generate functions sequentially, but randomly. Generate up to `n` functions.")
 
 	flag.StringVar(&SpecTest, "t", "", "Run only specific test, e.g. void:float:ushort")
 	flag.StringVar(&SpecFile, "f", "", "Run specific tests from file, e.g. void:float:ushort\\nvoid:double")
 }
 
-func CalcProgress(run int) (passed, all uint64) {
-	all = 1
-	for i := uint(0); i <= MaxArgs; i++ {
-		all += uint64(math.Pow(float64(len(Types)), float64(i+1)))
+var allPossibleFuncs uint64
+
+func AllPossibleFuncs() uint64 {
+	if allPossibleFuncs > 0 {
+		return allPossibleFuncs
 	}
+	allPossibleFuncs = 1
+	for i := uint(0); i <= MaxArgs; i++ {
+		allPossibleFuncs += uint64(math.Pow(float64(len(Types)), float64(i+1)))
+	}
+	return allPossibleFuncs
+}
+
+func CalcProgress(run int) (passed, all uint64) {
+	if MaxRandom > 0 {
+		all = uint64(MaxRandom)
+		if all > AllPossibleFuncs() {
+			all = AllPossibleFuncs()
+		}
+	} else {
+		all = AllPossibleFuncs()
+	}
+
 	passed = uint64(run) * uint64(FuncsPerTest)
 	if passed > all {
 		passed = all
 	}
+
 	return
 }
 
@@ -644,6 +722,9 @@ func main() {
 	}
 
 	fn := NewFunc(int(MaxArgs))
+	if MaxRandom > 0 {
+		fn.GenerateRandomly(uint64(MaxRandom))
+	}
 	for fn.Next() {
 		if funcs == 0 {
 			prepare()
