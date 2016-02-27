@@ -476,24 +476,26 @@ func init() {
 	flag.StringVar(&SpecFile, "f", "", "Run specific tests from file, e.g. void:float:ushort\\nvoid:double")
 }
 
+func CalcProgress(run int) (passed, all uint64) {
+	for i := uint(0); i <= MaxArgs; i++ {
+		all += uint64(math.Pow(float64(len(Types)), float64(i)))
+	}
+	passed = uint64(run) * uint64(FuncsPerTest)
+	if passed > all {
+		passed = all
+	}
+	return
+}
+
 func RunTests(run int) bool {
 	if OnlyGen {
 		os.Exit(0)
 	}
 
-	var allFuncs uint64
-	for i := uint(0); i <= MaxArgs; i++ {
-		allFuncs += uint64(math.Pow(float64(len(Types)), float64(i)))
+	if SpecTest == "" && SpecFile == "" {
+		fnsPassed, fnsAll := CalcProgress(run)
+		fmt.Printf("--- Party %d (%d/%d) ---\n", run, fnsPassed, fnsAll)
 	}
-	fnsPassed := uint64(run) * uint64(FuncsPerTest)
-	if fnsPassed > allFuncs {
-		fnsPassed = allFuncs
-	}
-	if SpecTest != "" {
-		fnsPassed = 1
-		allFuncs = 1
-	}
-	fmt.Printf("--- Party %d (%d/%d) ---\n", run, fnsPassed, allFuncs)
 
 	args := []string{"test"}
 	if Verbose {
