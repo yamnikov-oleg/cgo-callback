@@ -15,6 +15,9 @@
 #define TYPE_INT 0
 #define TYPE_FLOAT 1
 
+// This function is used to check if a pointer can be passed into Cgo on Go 1.6+
+void cgo_callback_assert_ptr(void *ptr);
+
 // Calculate address of the port by id and vice versa.
 void *cgo_callback_get_port_addr(unsigned id);
 unsigned cgo_callback_get_port_id(void *addr);

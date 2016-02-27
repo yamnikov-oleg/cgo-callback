@@ -47,8 +47,12 @@ func cgo_callback_go_entry(call *C.cgo_callback_call_t) {
 
 	var reti interface{}
 	if ctx.ret.kind == pointer {
-		//REVIEW: Is it safe to return pointers into Cgo?
-		reti = uint64(uintptr(rets[0].Convert(reflect.TypeOf(unsafe.Pointer(nil))).Interface().(unsafe.Pointer)))
+		// Pass the pointer to the dummy C function to check if it suits Cgo
+		// pointer passing rules on go 1.6+.
+		// Cgo will panic if there's something wrong.
+		ptr := rets[0].Convert(reflect.TypeOf(unsafe.Pointer(nil))).Interface().(unsafe.Pointer)
+		C.cgo_callback_assert_ptr(ptr)
+		reti = uint64(uintptr(ptr))
 	} else {
 		reti = rets[0].Convert(ctx.ret.reft).Interface()
 	}

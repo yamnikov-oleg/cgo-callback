@@ -7,6 +7,8 @@ extern char cgo_callback_ports;
 void cgo_callback_conv_init(cgo_callback_call_t *call);
 void cgo_callback_conv_destroy(cgo_callback_call_t *call);
 
+void cgo_callback_assert_ptr(void *ptr){}
+
 void *cgo_callback_get_port_addr(unsigned id) {
   return &cgo_callback_ports + id*5;
 }
