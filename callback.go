@@ -16,6 +16,7 @@ const (
 	unsigned        // Unsigned integers and pointers
 	singlePrec      // Single-precision float
 	doublePrec      // Double-precision float
+	pointer
 )
 
 func kindFromReflect(k reflect.Kind) kind {
@@ -31,9 +32,7 @@ func kindFromReflect(k reflect.Kind) kind {
 		reflect.Uint8,
 		reflect.Uint16,
 		reflect.Uint32,
-		reflect.Uint64,
-		reflect.Ptr,
-		reflect.UnsafePointer:
+		reflect.Uint64:
 		return unsigned
 
 	case reflect.Float32:
@@ -41,6 +40,9 @@ func kindFromReflect(k reflect.Kind) kind {
 
 	case reflect.Float64:
 		return doublePrec
+
+	case reflect.UnsafePointer:
+		return pointer
 
 	default:
 		return invalid

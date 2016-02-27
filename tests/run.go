@@ -18,12 +18,28 @@ import (
 // Type of a callback argument
 type CType string
 
+func (t CType) Ptr() bool {
+	return strings.HasSuffix(string(t), "*")
+}
+
+func (t CType) Deref() CType {
+	if !t.Ptr() {
+		return t
+	}
+	if t.Short() == "voidptr" {
+		return "int"
+	}
+	return CType(strings.Replace(string(t), "*", "", 1))
+}
+
 // "unsigned char" -> "unsigned char"
+// "int*" -> "int*"
 func (t CType) CNotation() string {
 	return string(t)
 }
 
 // "unsigned char" -> "uchar"
+// "int*" -> "intptr"
 func (t CType) Short() (s string) {
 	const unsigned_ = "unsigned "
 	if strings.HasPrefix(string(t), unsigned_) {
@@ -31,10 +47,12 @@ func (t CType) Short() (s string) {
 		t = CType([]byte(t)[len(unsigned_):])
 	}
 	s += strings.Replace(string(t), " ", "_", -1)
+	s = strings.Replace(s, "*", "ptr", 1)
 	return s
 }
 
 // "unsigned char" -> "Uchar"
+// "int*" -> "Intptr"
 func (t CType) CapShort() string {
 	bt := []byte(t.Short())
 	if bt[0] >= 'a' && bt[0] <= 'z' {
@@ -44,13 +62,21 @@ func (t CType) CapShort() string {
 }
 
 // "unsigned char" -> "c_uchar"
+// "int*" -> "c_intptr"
 func (t CType) GoNotation() string {
 	return "c_" + t.Short()
 }
 
 // "unsigned char" -> "C.uchar"
+// "int*" -> "*C.int"
 func (t CType) CgoNotation() string {
-	s := "C." + t.Short()
+	if t == "void*" {
+		return "unsafe.Pointer"
+	}
+	s := "C." + t.Deref().Short()
+	if t.Ptr() {
+		s = "(*" + s + ")"
+	}
 	return s
 }
 
@@ -58,7 +84,7 @@ func init() {
 	rand.Seed(time.Now().Unix())
 }
 
-// Random value for a type
+// Random value for a type in Go syntax
 func (t CType) Random() interface{} {
 	switch t.Short() {
 	case "char":
@@ -81,9 +107,11 @@ func (t CType) Random() interface{} {
 		return float32(rand.NormFloat64())
 	case "double":
 		return rand.NormFloat64()
-	default:
-		return ""
 	}
+	if t.Ptr() {
+		return fmt.Sprintf("new%v(%v)", t.CapShort(), t.Deref().Random())
+	}
+	return ""
 }
 
 // List of all supported C types
@@ -93,6 +121,7 @@ var Types = []CType{
 	"int", "unsigned int",
 	"long", "unsigned long",
 	"float", "double",
+	/*"int*",*/ "void*",
 }
 
 // Pointer to a type in the Types array
@@ -450,11 +479,11 @@ func (f *Func) WriteGoTestDecl(w io.Writer) {
 	fmt.Fprintf(w, "\tvar called bool\n")
 	for i, t := range f.Args.NonVoid() {
 		fmt.Fprintf(w, "\tvar set%d %v\n", i+1, t.GoNotation())
-		fmt.Fprintf(w, "\tconst expect%d %v = %v\n", i+1, t.GoNotation(), t.Random())
+		fmt.Fprintf(w, "\tvar expect%d %v = %v\n", i+1, t.GoNotation(), t.Random())
 	}
 	if !f.Void() {
 		fmt.Fprintf(w, "\tvar ret %v\n", f.RetType.GoNotation())
-		fmt.Fprintf(w, "\tconst rete %v = %v\n", f.RetType.GoNotation(), f.RetType.Random())
+		fmt.Fprintf(w, "\tvar rete %v = %v\n", f.RetType.GoNotation(), f.RetType.Random())
 	}
 	fmt.Fprint(w, "\t")
 	if !f.Void() {
@@ -520,6 +549,16 @@ func NewCallsGo() *os.File {
 		fmt.Fprintf(f, "type %v %v\n", t.GoNotation(), t.CgoNotation())
 	}
 	fmt.Fprintln(f)
+	for _, t := range Types {
+		if !t.Ptr() {
+			continue
+		}
+		fmt.Fprintf(f, "func new%v(arg %v) %v {\n", t.CapShort(), t.Deref().GoNotation(), t.GoNotation())
+		fmt.Fprintf(f, "\tv := %v(arg)\n", t.Deref().CgoNotation())
+		fmt.Fprintf(f, "\treturn %v(&v)\n", t.GoNotation())
+		fmt.Fprint(f, "}\n")
+		fmt.Fprintln(f)
+	}
 	return f
 }
 

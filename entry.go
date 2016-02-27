@@ -33,6 +33,10 @@ func cgo_callback_go_entry(call *C.cgo_callback_call_t) {
 		case doublePrec:
 			f := C.cgo_callback_conv_get_arg_double(call)
 			args = append(args, reflect.ValueOf(f).Convert(val.reft))
+		case pointer:
+			u := C.cgo_callback_conv_get_arg_uint(call, C.int(val.size*8))
+			ptr := unsafe.Pointer(uintptr(u))
+			args = append(args, reflect.ValueOf(ptr).Convert(val.reft))
 		}
 	}
 
@@ -41,9 +45,15 @@ func cgo_callback_go_entry(call *C.cgo_callback_call_t) {
 		return
 	}
 
+	var reti interface{}
+	if ctx.ret.kind == pointer {
+		//REVIEW: Is it safe to return pointers into Cgo?
+		reti = uint64(uintptr(rets[0].Convert(reflect.TypeOf(unsafe.Pointer(nil))).Interface().(unsafe.Pointer)))
+	} else {
+		reti = rets[0].Convert(ctx.ret.reft).Interface()
+	}
 	var arr [16]byte
 	buf := bytes.NewBuffer(arr[0:0])
-	reti := rets[0].Convert(ctx.ret.reft).Interface()
 	if err := binary.Write(buf, binary.LittleEndian, reti); err != nil {
 		panic("cgo-callback: " + err.Error())
 	}
