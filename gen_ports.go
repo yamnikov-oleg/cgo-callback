@@ -3,30 +3,30 @@
 package main
 
 import (
-  "fmt"
-  "os"
+	"fmt"
+	"os"
 )
 
 const maxPorts = 128
 
 func main() {
-  portsDotS, err := os.Create("ports_x86.s")
-  if err != nil {
-    panic(err)
-  }
-  defer portsDotS.Close()
+	portsDotS, err := os.Create("ports_x86.s")
+	if err != nil {
+		panic(err)
+	}
+	defer portsDotS.Close()
 
-  portsDotS.Write([]byte(portsPreambule))
-  for i := 0; i < maxPorts; i++ {
-    portsDotS.Write([]byte("\tcall cgo_callback_asm_entry\n"))
-  }
+	portsDotS.Write([]byte(portsPreambule))
+	for i := 0; i < maxPorts; i++ {
+		portsDotS.Write([]byte("\tcall cgo_callback_asm_entry\n"))
+	}
 
-  portsmaxDotGo, err := os.Create("portsmax.go")
-  if err != nil {
-    panic(err)
-  }
-  defer portsmaxDotGo.Close()
-  portsmaxDotGo.Write([]byte(fmt.Sprintf(portsmaxText, maxPorts)))
+	portsmaxDotGo, err := os.Create("portsmax.go")
+	if err != nil {
+		panic(err)
+	}
+	defer portsmaxDotGo.Close()
+	portsmaxDotGo.Write([]byte(fmt.Sprintf(portsmaxText, maxPorts)))
 }
 
 const portsPreambule = `//+build i386 amd64
