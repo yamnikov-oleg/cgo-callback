@@ -531,10 +531,10 @@ func RunSpecificFile(filename string) {
 	cg.Close()
 	ctg.Close()
 	success := RunTests(1)
-	CleanUp()
 	if !success {
 		os.Exit(1)
 	}
+	CleanUp()
 }
 
 func RunSpecificTest(test string) {
@@ -553,10 +553,10 @@ func RunSpecificTest(test string) {
 	ctg.Close()
 
 	success := RunTests(1)
-	CleanUp()
 	if !success {
 		os.Exit(1)
 	}
+	CleanUp()
 }
 
 func main() {
