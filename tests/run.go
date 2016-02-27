@@ -459,6 +459,7 @@ var (
 	StopOnFail   bool
 	FuncsPerTest uint
 	MaxArgs      uint
+	OnlyGen      bool
 
 	SpecTest string
 	SpecFile string
@@ -469,12 +470,17 @@ func init() {
 	flag.BoolVar(&StopOnFail, "e", false, "Stop at the first failed test run")
 	flag.UintVar(&FuncsPerTest, "fn", 100, "Number of functions to generate per test run")
 	flag.UintVar(&MaxArgs, "arg", 3, "Maximum number of arguments to test")
+	flag.BoolVar(&OnlyGen, "gen", false, "Generate tests but not run")
 
 	flag.StringVar(&SpecTest, "t", "", "Run only specific test, e.g. void:float:ushort")
 	flag.StringVar(&SpecFile, "f", "", "Run specific tests from file, e.g. void:float:ushort\\nvoid:double")
 }
 
 func RunTests(run int) bool {
+	if OnlyGen {
+		os.Exit(0)
+	}
+
 	var allFuncs uint64
 	for i := uint(0); i <= MaxArgs; i++ {
 		allFuncs += uint64(math.Pow(float64(len(Types)), float64(i)))
