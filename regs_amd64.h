@@ -21,8 +21,8 @@
 #define XMM0 0x70
 #define XMM1 0x80
 #define XMM2 0x90
-#define XMM3 0x100
-#define XMM4 0x110
-#define XMM5 0x120
-#define XMM6 0x130
-#define XMM7 0x140
+#define XMM3 0xA0
+#define XMM4 0xB0
+#define XMM5 0xC0
+#define XMM6 0xE0
+#define XMM7 0xF0
