@@ -435,7 +435,7 @@ func init() {
 	flag.UintVar(&FuncsPerTest, "fn", 100, "Number of functions to generate per test run")
 	flag.UintVar(&MaxArgs, "arg", 3, "Maximum number of arguments to test")
 
-	flag.StringVar(&SpecTest, "t", "", "Run onlygi specific test, e.g. void:float:ushort")
+	flag.StringVar(&SpecTest, "t", "", "Run only specific test, e.g. void:float:ushort")
 }
 
 func RunTests(run int) bool {
