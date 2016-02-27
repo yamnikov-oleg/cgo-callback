@@ -6,4 +6,4 @@ go:
   - 1.6
 
 script:
-  - cd tests && go run run.go -e -fn 1000 -arg 6
+  - go run tests/run.go -e -fn 1000 -arg 6

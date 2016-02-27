@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -300,6 +301,39 @@ func NewFunc(argnum int) *Func {
 	}
 }
 
+// From void:short:uint -> void f(short, unsigned int)
+func FuncFromShortNotation(s string) *Func {
+	determineType := func(short string) TypePtr {
+		if short == "void" {
+			return -1
+		}
+		for i, t := range Types {
+			if t.Short() == short {
+				return TypePtr(i)
+			}
+		}
+		panic("Unknown type: " + short)
+	}
+
+	s = strings.ToLower(s)
+	if s == "" {
+		s = "void"
+	}
+	shorts := strings.Split(s, ":")
+	types := make(TypeCombo, len(shorts))
+	for i := range shorts {
+		types[i] = determineType(shorts[i])
+	}
+	if len(types) < 2 {
+		types = append(types, -1)
+	}
+
+	return &Func{
+		RetType: types[0],
+		Args:    types[1:],
+	}
+}
+
 func (f *Func) Next() bool {
 	return f.Args.Next()
 	// if !f.RetType.Next() {
@@ -427,6 +461,7 @@ var (
 	MaxArgs      uint
 
 	SpecTest string
+	SpecFile string
 )
 
 func init() {
@@ -436,6 +471,7 @@ func init() {
 	flag.UintVar(&MaxArgs, "arg", 3, "Maximum number of arguments to test")
 
 	flag.StringVar(&SpecTest, "t", "", "Run only specific test, e.g. void:float:ushort")
+	flag.StringVar(&SpecFile, "f", "", "Run specific tests from file, e.g. void:float:ushort\\nvoid:double")
 }
 
 func RunTests(run int) bool {
@@ -470,35 +506,33 @@ func RunTests(run int) bool {
 	return false
 }
 
+func RunSpecificFile(filename string) {
+	f, err := os.Open(filename)
+	if err != nil {
+		panic(err)
+	}
+	scanner := bufio.NewScanner(f)
+	ch := NewCallsH()
+	cg := NewCallsGo()
+	ctg := NewCallsTestGo()
+	for scanner.Scan() {
+		fn := FuncFromShortNotation(scanner.Text())
+		fn.WriteCDecl(ch)
+		fn.WriteGoDecl(cg)
+		fn.WriteGoTestDecl(ctg)
+	}
+	ch.Close()
+	cg.Close()
+	ctg.Close()
+	success := RunTests(1)
+	CleanUp()
+	if !success {
+		os.Exit(1)
+	}
+}
+
 func RunSpecificTest(test string) {
-	determineType := func(short string) TypePtr {
-		if short == "void" {
-			return -1
-		}
-		for i, t := range Types {
-			if t.Short() == short {
-				return TypePtr(i)
-			}
-		}
-		panic("Unknown type: " + short)
-	}
-
-	test = strings.ToLower(test)
-	if test == "" {
-		test = "void"
-	}
-	shorts := strings.Split(test, ":")
-	types := make(TypeCombo, len(shorts))
-	for i := range shorts {
-		types[i] = determineType(shorts[i])
-	}
-	if len(types) < 2 {
-		types = append(types, -1)
-	}
-
-	fn := NewFunc(0)
-	fn.RetType = types[0]
-	fn.Args = types[1:]
+	fn := FuncFromShortNotation(test)
 
 	ch := NewCallsH()
 	fn.WriteCDecl(ch)
@@ -520,8 +554,17 @@ func RunSpecificTest(test string) {
 }
 
 func main() {
-	flag.Parse()
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	os.Chdir(os.Getenv("GOPATH") + "/src/github.com/yamnikov-oleg/cgo-callback/tests")
 
+	flag.Parse()
+	if SpecFile != "" {
+		RunSpecificFile(fmt.Sprintf("%v/%v", wd, SpecFile))
+		return
+	}
 	if SpecTest != "" {
 		RunSpecificTest(SpecTest)
 		return
