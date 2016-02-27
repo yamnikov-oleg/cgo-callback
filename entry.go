@@ -48,12 +48,5 @@ func cgo_callback_go_entry(call *C.cgo_callback_call_t) {
 		panic("cgo-callback: " + err.Error())
 	}
 
-	var ctype C.int
-	switch ctx.ret.kind {
-	case signed, unsigned:
-		ctype = C.TYPE_INT
-	case singlePrec, doublePrec:
-		ctype = C.TYPE_FLOAT
-	}
-	C.cgo_callback_conv_return(call, unsafe.Pointer(&arr), ctype, C.int(ctx.ret.size*8))
+	C.cgo_callback_conv_return(call, unsafe.Pointer(&arr), ctx.ret.kind.toCType(), C.int(ctx.ret.size*8))
 }

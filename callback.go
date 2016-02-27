@@ -47,6 +47,17 @@ func kindFromReflect(k reflect.Kind) kind {
 	}
 }
 
+func (k kind) toCType() C.int {
+	switch k {
+	case signed, unsigned:
+		return C.TYPE_INT
+	case singlePrec, doublePrec:
+		return C.TYPE_FLOAT
+	default:
+		return 0
+	}
+}
+
 type value struct {
 	kind kind
 	size uintptr
