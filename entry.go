@@ -4,8 +4,11 @@ package callback
 import "C"
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"reflect"
+	"unsafe"
 )
 
 //export cgo_callback_go_entry
@@ -32,5 +35,25 @@ func cgo_callback_go_entry(call *C.cgo_callback_call_t) {
 			args = append(args, reflect.ValueOf(f).Convert(val.reft))
 		}
 	}
-	ctx.fn.Call(args)
+
+	rets := ctx.fn.Call(args)
+	if ctx.ret == nil {
+		return
+	}
+
+	var arr [16]byte
+	buf := bytes.NewBuffer(arr[0:0])
+	reti := rets[0].Convert(ctx.ret.reft).Interface()
+	if err := binary.Write(buf, binary.LittleEndian, reti); err != nil {
+		panic("cgo-callback: " + err.Error())
+	}
+
+	var ctype C.int
+	switch ctx.ret.kind {
+	case signed, unsigned:
+		ctype = C.TYPE_INT
+	case singlePrec, doublePrec:
+		ctype = C.TYPE_FLOAT
+	}
+	C.cgo_callback_conv_return(call, unsafe.Pointer(&arr), ctype, C.int(ctx.ret.size*8))
 }

@@ -12,8 +12,8 @@
 #define BITS_32 32
 #define BITS_64 64
 
-// #define TYPE_INT 0
-// #define TYPE_FLOAT 1
+#define TYPE_INT 0
+#define TYPE_FLOAT 1
 
 // Calculate address of the port by id and vice versa.
 void *cgo_callback_get_port_addr(unsigned id);
@@ -46,4 +46,4 @@ double cgo_callback_conv_get_arg_double(cgo_callback_call_t *call);
 
 // Set the return value of the specified type and size.
 // Each platform must have its implementation of this function.
-// void cgo_callback_conv_return(cgo_callback_call_t *call, void *val, int type, int bits);
+void cgo_callback_conv_return(cgo_callback_call_t *call, void *val, int type, int bits);

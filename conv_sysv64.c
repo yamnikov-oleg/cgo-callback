@@ -4,6 +4,7 @@
 #include "regs_amd64.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct {
   // Number of integer (signed, unsigned and pointer) arguments used.
@@ -108,4 +109,22 @@ double cgo_callback_conv_get_arg_double(cgo_callback_call_t *call) {
   return cgo_callback_conv_get_reg_double(call, float_regs[conv->float_args++]);
 }
 
-// void cgo_callback_conv_return(cgo_callback_call_t *call, void *val, int type, int bits);
+void cgo_callback_conv_return(cgo_callback_call_t *call, void *val, int type, int bits) {
+  int bytes = bits/8;
+
+  if (type == TYPE_INT) {
+    if (bytes <= 8) {
+      memcpy((char *)call->reg + RAX, val, bytes);
+    } else {
+      memcpy((char *)call->reg + RAX, val, 8);
+      memcpy((char *)call->reg + RDX, (char *)val+8, bytes-8);
+    }
+  } else if (type == TYPE_FLOAT) {
+    if (bytes <= 16) {
+      memcpy((char *)call->reg + XMM0, val, bytes);
+    } else {
+      memcpy((char *)call->reg + XMM0, val, 16);
+      memcpy((char *)call->reg + XMM1, (char *)val+16, bytes-16);
+    }
+  }
+}

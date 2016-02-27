@@ -295,10 +295,15 @@ type Func struct {
 }
 
 func NewFunc(argnum int) *Func {
-	return &Func{
+	f := &Func{
 		RetType: -2,
 		Args:    NewCombo(argnum),
 	}
+	if argnum == 0 {
+		// Hack to make zero-args funcs work
+		f.RetType = -1
+	}
+	return f
 }
 
 // From void:short:uint -> void f(short, unsigned int)
@@ -335,12 +340,11 @@ func FuncFromShortNotation(s string) *Func {
 }
 
 func (f *Func) Next() bool {
-	return f.Args.Next()
-	// if !f.RetType.Next() {
-	// 	f.RetType = -1
-	// 	return f.Args.Next()
-	// }
-	// return true
+	if !f.RetType.Next() {
+		f.RetType = -1
+		return f.Args.Next()
+	}
+	return true
 }
 
 func (f *Func) Void() bool {
@@ -361,15 +365,26 @@ func (f *Func) GoAnon() string {
 
 func (f *Func) WriteCDecl(w io.Writer) {
 	fmt.Fprintf(w, "%v %v(%v) {\n", f.RetType.CNotation(), f.Name(), f.Args.CArgs(true))
-	fmt.Fprintf(w, "\t((void (*)(%v))ptr)(%v);\n", f.Args.CTypes(), f.Args.List())
+	fmt.Fprint(w, "\t")
+	if !f.Void() {
+		fmt.Fprint(w, "return ")
+	}
+	fmt.Fprintf(w, "((%v (*)(%v))ptr)(%v);\n", f.RetType.CNotation(), f.Args.CTypes(), f.Args.List())
 	fmt.Fprint(w, "}\n")
 }
 
 func (f *Func) WriteGoDecl(w io.Writer) {
-	fmt.Fprintf(w, "func %v(%v) {\n", f.Name(), f.Args.GoArgs(f))
+	fmt.Fprintf(w, "func %v(%v)%v {\n", f.Name(), f.Args.GoArgs(f), " "+f.RetType.GoNotation())
 	fmt.Fprint(w, "\tptr := callback.New(f)\n")
-	fmt.Fprintf(w, "\tC.%v(%v)\n", f.Name(), f.Args.CgoCall(true))
+	fmt.Fprint(w, "\t")
+	if !f.Void() {
+		fmt.Fprint(w, "ret := ")
+	}
+	fmt.Fprintf(w, "C.%v(%v)\n", f.Name(), f.Args.CgoCall(true))
 	fmt.Fprint(w, "\tcallback.Remove(ptr)\n")
+	if !f.Void() {
+		fmt.Fprintf(w, "\treturn %v(ret)\n", f.RetType.GoNotation())
+	}
 	fmt.Fprint(w, "}\n")
 }
 
@@ -380,10 +395,21 @@ func (f *Func) WriteGoTestDecl(w io.Writer) {
 		fmt.Fprintf(w, "\tvar set%d %v\n", i+1, t.GoNotation())
 		fmt.Fprintf(w, "\tconst expect%d %v = %v\n", i+1, t.GoNotation(), t.Random())
 	}
-	fmt.Fprintf(w, "\t%v(%v {\n", f.Name(), f.GoAnon())
+	if !f.Void() {
+		fmt.Fprintf(w, "\tvar ret %v\n", f.RetType.GoNotation())
+		fmt.Fprintf(w, "\tconst rete %v = %v\n", f.RetType.GoNotation(), f.RetType.Random())
+	}
+	fmt.Fprint(w, "\t")
+	if !f.Void() {
+		fmt.Fprint(w, "ret = ")
+	}
+	fmt.Fprintf(w, "%v(%v {\n", f.Name(), f.GoAnon())
 	fmt.Fprintf(w, "\t\tcalled = true\n")
 	for i := range f.Args.NonVoid() {
 		fmt.Fprintf(w, "\t\tset%d = arg%d\n", i+1, i+1)
+	}
+	if !f.Void() {
+		fmt.Fprintf(w, "\t\treturn rete\n")
 	}
 	fmt.Fprintf(w, "\t}, %v)\n", f.Args.ListPattern("expect"))
 	fmt.Fprint(w, "\tif !called {\n")
@@ -392,6 +418,11 @@ func (f *Func) WriteGoTestDecl(w io.Writer) {
 	for i := range f.Args.NonVoid() {
 		fmt.Fprintf(w, "\tif set%d != expect%d {\n", i+1, i+1)
 		fmt.Fprintf(w, "\t\tt.Errorf(\"Arg %d: expected %%v, got %%v\", expect%d, set%d)\n", i+1, i+1, i+1)
+		fmt.Fprint(w, "\t}\n")
+	}
+	if !f.Void() {
+		fmt.Fprint(w, "\tif ret != rete {\n")
+		fmt.Fprintf(w, "\t\tt.Errorf(\"Ret: expected %%v, got %%v\", rete, ret)\n")
 		fmt.Fprint(w, "\t}\n")
 	}
 	fmt.Fprint(w, "}\n")
@@ -477,8 +508,9 @@ func init() {
 }
 
 func CalcProgress(run int) (passed, all uint64) {
+	all = 1
 	for i := uint(0); i <= MaxArgs; i++ {
-		all += uint64(math.Pow(float64(len(Types)), float64(i)))
+		all += uint64(math.Pow(float64(len(Types)), float64(i+1)))
 	}
 	passed = uint64(run) * uint64(FuncsPerTest)
 	if passed > all {
