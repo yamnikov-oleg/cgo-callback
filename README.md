@@ -8,4 +8,3 @@ WIP
 **Current limitations:**
 + Only System V ABI x64 (unix 64-bit).
 + Only integers, pointers and floats as arguments and return values.
-+ Up to 6 integer+pointer and up to 8 floating-point arguments per callback.
