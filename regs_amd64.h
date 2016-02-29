@@ -24,5 +24,5 @@
 #define XMM3 0xA0
 #define XMM4 0xB0
 #define XMM5 0xC0
-#define XMM6 0xE0
-#define XMM7 0xF0
+#define XMM6 0xD0
+#define XMM7 0xE0
