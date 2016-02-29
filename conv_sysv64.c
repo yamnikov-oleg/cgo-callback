@@ -24,12 +24,12 @@ void cgo_callback_conv_destroy(cgo_callback_call_t *call) {
   free(call->conv);
 }
 
-int64_t cgo_callback_conv_get_reg_int(cgo_callback_call_t* call, int reg, int bits) {
+int64_t cgo_callback_conv_get_int(void *addr, int bits) {
   signed char bytes[8] = {0};
   int bcount = bits/8;
   int i;
   for (i = 0; i < bcount; i++) {
-    bytes[i] = *((char *)call->reg + reg + i);
+    bytes[i] = *((char *)addr + i);
   }
   // For negative values must set leading ones.
   if (bytes[bcount-1] < 0) {
@@ -40,22 +40,70 @@ int64_t cgo_callback_conv_get_reg_int(cgo_callback_call_t* call, int reg, int bi
   return *(int64_t *)bytes;
 }
 
-uint64_t cgo_callback_conv_get_reg_uint(cgo_callback_call_t* call, int reg, int bits) {
+int64_t cgo_callback_conv_get_reg_int(cgo_callback_call_t* call, int reg, int bits) {
+  return cgo_callback_conv_get_int((char *)call->reg + reg, bits);
+}
+
+int64_t cgo_callback_conv_pop_int(cgo_callback_call_t* call, int bits) {
+  int64_t val = cgo_callback_conv_get_int(call->sp, bits);
+  char *csp = (char *)call->sp;
+  csp += 8;
+  call->sp = (void *)csp;
+  return val;
+}
+
+uint64_t cgo_callback_conv_get_uint(void *addr, int bits) {
   char bytes[8] = {0};
   int bcount = bits/8;
   int i;
   for (i = 0; i < bcount; i++) {
-    bytes[i] = *((char *)call->reg + reg + i);
+    bytes[i] = *((char *)addr + i);
   }
   return *(uint64_t *)bytes;
 }
 
+uint64_t cgo_callback_conv_get_reg_uint(cgo_callback_call_t* call, int reg, int bits) {
+  return cgo_callback_conv_get_uint((char *)call->reg + reg, bits);
+}
+
+uint64_t cgo_callback_conv_pop_uint(cgo_callback_call_t* call, int bits) {
+  uint64_t val = cgo_callback_conv_get_uint(call->sp, bits);
+  char *csp = (char *)call->sp;
+  csp += 8;
+  call->sp = (void *)csp;
+  return val;
+}
+
+float cgo_callback_conv_get_single(void* addr) {
+  return *(float *)((char *)addr);
+}
+
 float cgo_callback_conv_get_reg_single(cgo_callback_call_t* call, int reg) {
-  return *(float *)((char *)call->reg + reg);
+  return cgo_callback_conv_get_single((char *)call->reg + reg);
+}
+
+float cgo_callback_conv_pop_single(cgo_callback_call_t* call) {
+  float val = cgo_callback_conv_get_single((char *)call->sp);
+  char *csp = (char *)call->sp;
+  csp += 8;
+  call->sp = (void *)csp;
+  return val;
+}
+
+double cgo_callback_conv_get_double(void *addr) {
+  return *(double *)((char *)addr);
 }
 
 double cgo_callback_conv_get_reg_double(cgo_callback_call_t* call, int reg) {
-  return *(double *)((char *)call->reg + reg);
+  return cgo_callback_conv_get_double((char *)call->reg + reg);
+}
+
+double cgo_callback_conv_pop_double(cgo_callback_call_t* call) {
+  double val = cgo_callback_conv_get_double((char *)call->sp);
+  char *csp = (char *)call->sp;
+  csp += 8;
+  call->sp = (void *)csp;
+  return val;
 }
 
 // According to System V ABI, integer args are passed through
@@ -65,21 +113,19 @@ static int int_regs[6] = {RDI, RSI, RDX, RCX, R8, R9};
 int64_t cgo_callback_conv_get_arg_int(cgo_callback_call_t *call, int bits) {
   cgo_callback_sysv64_conv_t *conv = call->conv;
 
-  // TODO: support more than 6 integer arguments.
-  if (conv->int_args >= 6) {
-    return 0;
+  if (conv->int_args < 6) {
+    return cgo_callback_conv_get_reg_int(call, int_regs[conv->int_args++], bits);
   }
-  return cgo_callback_conv_get_reg_int(call, int_regs[conv->int_args++], bits);
+  return cgo_callback_conv_pop_int(call, bits);
 }
 
 uint64_t cgo_callback_conv_get_arg_uint(cgo_callback_call_t *call, int bits) {
   cgo_callback_sysv64_conv_t *conv = call->conv;
 
-  // TODO: support more than 6 integer arguments.
-  if (conv->int_args >= 6) {
-    return 0;
+  if (conv->int_args < 6) {
+    return cgo_callback_conv_get_reg_uint(call, int_regs[conv->int_args++], bits);
   }
-  return cgo_callback_conv_get_reg_uint(call, int_regs[conv->int_args++], bits);
+  return cgo_callback_conv_pop_uint(call, bits);
 }
 
 // According to System V ABI, float args are passed through
@@ -89,24 +135,20 @@ static int float_regs[8] = {XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7};
 float cgo_callback_conv_get_arg_single(cgo_callback_call_t *call) {
   cgo_callback_sysv64_conv_t *conv = call->conv;
 
-  // TODO: support more than 8 float arguments.
-  if (conv->float_args >= 8) {
-    return 0;
+  if (conv->float_args < 8) {
+    return cgo_callback_conv_get_reg_single(call, float_regs[conv->float_args++]);
   }
-
-  return cgo_callback_conv_get_reg_single(call, float_regs[conv->float_args++]);
+  return cgo_callback_conv_pop_single(call);
 }
 
 double cgo_callback_conv_get_arg_double(cgo_callback_call_t *call) {
   cgo_callback_sysv64_conv_t *conv = call->conv;
   double ret;
 
-  // TODO: support more than 8 float arguments.
-  if (conv->float_args >= 8) {
-    return 0;
+  if (conv->float_args < 8) {
+    return cgo_callback_conv_get_reg_double(call, float_regs[conv->float_args++]);
   }
-
-  return cgo_callback_conv_get_reg_double(call, float_regs[conv->float_args++]);
+  return cgo_callback_conv_pop_double(call);
 }
 
 void cgo_callback_conv_return(cgo_callback_call_t *call, void *val, int type, int bits) {
