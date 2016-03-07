@@ -42,7 +42,11 @@ int64_t cgo_callback_conv_get_int(void *addr, int bits) {
 int64_t cgo_callback_conv_pop_int(cgo_callback_call_t* call, int bits) {
   int64_t val = cgo_callback_conv_get_int(call->sp, bits);
   char *csp = (char *)call->sp;
-  csp += 4;
+  if (bits <= 32) {
+    csp += 4;
+  } else {
+    csp += 8;
+  }
   call->sp = (void *)csp;
   return val;
 }
@@ -60,7 +64,11 @@ uint64_t cgo_callback_conv_get_uint(void *addr, int bits) {
 uint64_t cgo_callback_conv_pop_uint(cgo_callback_call_t* call, int bits) {
   uint64_t val = cgo_callback_conv_get_uint(call->sp, bits);
   char *csp = (char *)call->sp;
-  csp += 4;
+  if (bits <= 32) {
+    csp += 4;
+  } else {
+    csp += 8;
+  }
   call->sp = (void *)csp;
   return val;
 }
@@ -107,7 +115,12 @@ double cgo_callback_conv_get_arg_double(cgo_callback_call_t *call) {
 
 void cgo_callback_conv_return(cgo_callback_call_t *call, void *val, int type, int bits) {
   if (type == TYPE_INT) {
-    memcpy((char *)call->reg + EAX, val, bits/8);
+    if (bits <= 32) {
+      memcpy((char *)call->reg + EAX, val, bits/8);
+    } else {
+      memcpy((char *)call->reg + EAX, val, 4);
+      memcpy((char *)call->reg + EDX, (char *)val+4, 4);
+    }
   } else if (type == TYPE_FLOAT) {
     double t;
     // Convert float32 to float64
