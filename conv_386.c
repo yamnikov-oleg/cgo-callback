@@ -106,5 +106,17 @@ double cgo_callback_conv_get_arg_double(cgo_callback_call_t *call) {
 }
 
 void cgo_callback_conv_return(cgo_callback_call_t *call, void *val, int type, int bits) {
-  memcpy((char *)call->reg + EAX, val, bits/8);
+  if (type == TYPE_INT) {
+    memcpy((char *)call->reg + EAX, val, bits/8);
+  } else if (type == TYPE_FLOAT) {
+    double t;
+    // Convert float32 to float64
+    if (bits == 32) {
+      float t1;
+      memcpy(&t1, val, 4);
+      t = t1;
+      val = &t;
+    }
+    memcpy((char *)call->reg + ST0, val, 8);
+  }
 }

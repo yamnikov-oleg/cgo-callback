@@ -9,3 +9,4 @@
 #define EDX 0x0C
 #define ESI 0x10
 #define EDI 0x14
+#define ST0 0x18

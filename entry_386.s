@@ -6,6 +6,8 @@ cgo_callback_asm_entry:
 	push %ebp
 	mov	%esp,	%ebp
 
+	sub $8, %esp
+	fstpl (%esp)
 	push %edi
 	push %esi
 	push %edx
@@ -27,6 +29,8 @@ cgo_callback_asm_entry:
 	pop %edx
 	pop %esi
 	pop %edi
+	fldl (%esp)
+	add $8, %esp
 
 	pop %ebp
 	add $4, %esp
