@@ -95,14 +95,10 @@ func (t CType) Random() interface{} {
 		return int16(rand.Intn(math.MaxUint16) + math.MinInt16)
 	case "ushort":
 		return uint16(rand.Intn(math.MaxUint16))
-	case "int":
+	case "int", "long":
 		return int32(rand.Intn(math.MaxInt32))
-	case "uint":
+	case "uint", "ulong":
 		return uint32(rand.Intn(math.MaxInt32) + math.MinInt32)
-	case "long":
-		return rand.Int63()
-	case "ulong":
-		return uint64(rand.Int63()) + uint64(rand.Int63())
 	case "float":
 		return float32(rand.NormFloat64())
 	case "double":

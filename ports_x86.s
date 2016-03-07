@@ -1,4 +1,4 @@
-//+build i386 amd64
+//+build 386 amd64
 
 // Generated using gen_ports.go.
 // Do not edit.
