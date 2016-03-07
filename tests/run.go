@@ -46,7 +46,7 @@ func (t CType) Short() (s string) {
 		s += "u"
 		t = CType([]byte(t)[len(unsigned_):])
 	}
-	s += strings.Replace(string(t), " ", "_", -1)
+	s += strings.Replace(string(t), " ", "", -1)
 	s = strings.Replace(s, "*", "ptr", 1)
 	return s
 }
@@ -99,6 +99,10 @@ func (t CType) Random() interface{} {
 		return int32(rand.Intn(math.MaxInt32))
 	case "uint", "ulong":
 		return uint32(rand.Intn(math.MaxInt32) + math.MinInt32)
+	case "longlong":
+		return rand.Int63()
+	case "ulonglong":
+		return uint64(rand.Int63()) + uint64(rand.Int63())
 	case "float":
 		return float32(rand.NormFloat64())
 	case "double":
@@ -116,6 +120,7 @@ var Types = []CType{
 	"short", "unsigned short",
 	"int", "unsigned int",
 	"long", "unsigned long",
+	"long long", "unsigned long long",
 	"float", "double",
 	/*"int*",*/ "void*",
 }
