@@ -78,6 +78,8 @@ type context struct {
 	fn   reflect.Value
 	ins  []value
 	ret  *value
+
+	cleanstack bool
 }
 
 var ctxs = map[uint]*context{}
@@ -92,7 +94,17 @@ func findNextPort() uint {
 }
 
 func New(f interface{}) uintptr {
-	ctx := context{}
+	return newcb(f, false)
+}
+
+func NewStdcall(f interface{}) uintptr {
+	return newcb(f, true)
+}
+
+func newcb(f interface{}, cs bool) uintptr {
+	ctx := context{
+		cleanstack: cs,
+	}
 
 	ctx.fn = reflect.ValueOf(f)
 	ft := ctx.fn.Type()
