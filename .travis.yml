@@ -7,3 +7,4 @@ go:
 
 script:
   - go run tests/run.go -e -rand 200000 -fn 1000 -arg 20
+  - go run tests/run.go -e -rand 1000 -fn 1000 -arg 20 -stdcall
