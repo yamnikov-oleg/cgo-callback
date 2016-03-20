@@ -472,12 +472,15 @@ func (f *Func) GoAnon() string {
 func (f *Func) WriteCDecl(w io.Writer) {
 	fmt.Fprintf(w, "%v %v(%v) {\n", f.RetType.CNotation(), f.Name(), f.Args.CArgs(true))
 
-	fmt.Fprintln(w, "\tint sp1, sp2;")
+	if !f.Void() {
+		fmt.Fprintf(w, "\t%v ret;\n", f.RetType.CNotation())
+	}
+	fmt.Fprintln(w, "\tvolatile int sp1, sp2;")
 	fmt.Fprintln(w, "\t"+`asm("mov %%esp, %0\n\t":"=r"(sp1));`)
 
 	fmt.Fprint(w, "\t")
 	if !f.Void() {
-		fmt.Fprintf(w, "%v ret = ", f.RetType.CNotation())
+		fmt.Fprint(w, "ret = ")
 	}
 	var attr string
 	if Stdcall {
@@ -485,7 +488,7 @@ func (f *Func) WriteCDecl(w io.Writer) {
 	}
 	fmt.Fprintf(w, "((%v (%v*)(%v))ptr)(%v);\n", f.RetType.CNotation(), attr, f.Args.CTypes(), f.Args.List())
 
-	fmt.Fprintln(w, "\t"+`asm("mov %%esp, %0\n\t":"=r"(sp2));`)
+	fmt.Fprintln(w, "\t"+`asm volatile ("mov %%esp, %0\n\t":"=r"(sp2));`)
 	fmt.Fprintln(w, "\tif (sp1 != sp2) {")
 	fmt.Fprintf(w, "\t\t"+`printf("%v: Stack pointers do not match! %%d bytes difference.\n", sp2-sp1);`+"\n", f.Name())
 	fmt.Fprintln(w, "\t\texit(1);")
@@ -569,6 +572,7 @@ func NewCallsH() *os.File {
 	}
 	WriteWarning(f)
 	fmt.Fprintln(f, "#include <stdlib.h>")
+	fmt.Fprintln(f, "#include <stdio.h>")
 	fmt.Fprintln(f)
 	return f
 }
@@ -581,7 +585,7 @@ func NewCallsGo() *os.File {
 	WriteWarning(f)
 	fmt.Fprintln(f, "package tests")
 	fmt.Fprintln(f)
-	fmt.Fprintln(f, `// #cgo CFLAGS: -O0 -w`)
+	fmt.Fprintln(f, `// #cgo CFLAGS: -w`)
 	fmt.Fprintln(f, `// #include "calls.h"`)
 	fmt.Fprintln(f, `import "C"`)
 	fmt.Fprintln(f, `import (`)
