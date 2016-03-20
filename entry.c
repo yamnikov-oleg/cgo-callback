@@ -23,7 +23,7 @@ unsigned cgo_callback_get_port_id(void *addr) {
 //
 // It's forced to use System V ABI to be cross platform.
 __attribute__((sysv_abi))
-void cgo_callback_c_entry(void *stack, void *reg) {
+int cgo_callback_c_entry(void *stack, void *reg) {
   cgo_callback_call_t call;
 
   // Pop the port address of the stack and discard return address.
@@ -34,11 +34,15 @@ void cgo_callback_c_entry(void *stack, void *reg) {
 
   call.port = cgo_callback_get_port_id(port_addr) - 1;
   call.sp = stack;
-  call.clean_stack = false;
-  call.popped_stack = 0;
+  call.cleanstack = false;
   call.reg = reg;
 
   cgo_callback_conv_init(&call);
   cgo_callback_go_entry(&call);
   cgo_callback_conv_destroy(&call);
+
+  if (!call.cleanstack) {
+    return 0;
+  }
+  return (char *)call.sp - (char *)stack;
 }

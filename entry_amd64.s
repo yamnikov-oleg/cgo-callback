@@ -76,4 +76,4 @@ cgo_callback_asm_entry:
 	pop %rbp
 	// Discard 8 bytes from the stack, containing address of the port instruction.
 	add $8, %rsp
-  ret $0
+  ret

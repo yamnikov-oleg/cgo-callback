@@ -30,9 +30,7 @@ typedef struct {
   void *sp;
   // Should the callee clean up the stack? False by default.
   // Ignored on conventions, which don't have callee-cleanup version.
-  bool clean_stack;
-  // Number of bytes popped of the stack. Used by "callee-cleanup" conventions.
-  int popped_stack;
+  bool cleanstack;
   // Pointer to the register map.
   void *reg;
   // Pointer to the convention-specific data.

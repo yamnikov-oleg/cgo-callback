@@ -18,6 +18,8 @@ func cgo_callback_go_entry(call *C.cgo_callback_call_t) {
 		panic(fmt.Sprintf("cgo-callback: call to unused port %v", call.port))
 	}
 
+	call.cleanstack = C._Bool(ctx.cleanstack)
+
 	var args []reflect.Value
 	for _, val := range ctx.ins {
 		switch val.kind {
@@ -61,6 +63,5 @@ func cgo_callback_go_entry(call *C.cgo_callback_call_t) {
 	if err := binary.Write(buf, binary.LittleEndian, reti); err != nil {
 		panic("cgo-callback: " + err.Error())
 	}
-
 	C.cgo_callback_conv_return(call, unsafe.Pointer(&arr), ctx.ret.kind.toCType(), C.int(ctx.ret.size*8))
 }
