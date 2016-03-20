@@ -114,6 +114,14 @@ func (t CType) Random() interface{} {
 	return ""
 }
 
+// Random value for a type in C syntax
+func (t CType) CRandom() interface{} {
+	if t.Ptr() {
+		return CType("unsigned int").CRandom()
+	}
+	return t.Random()
+}
+
 // List of all supported C types
 var Types = []CType{
 	"char", "unsigned char",
@@ -127,6 +135,10 @@ var Types = []CType{
 
 // Pointer to a type in the Types array
 type TypePtr int
+
+func RandomTypePtr() TypePtr {
+	return TypePtr(rand.Intn(len(Types)))
+}
 
 func (t TypePtr) Void() bool {
 	return t < 0 || t >= TypePtr(len(Types))
@@ -177,6 +189,13 @@ func (t TypePtr) Random() interface{} {
 		return ""
 	}
 	return Types[t].Random()
+}
+
+func (t TypePtr) CRandom() interface{} {
+	if t.Void() {
+		return ""
+	}
+	return Types[t].CRandom()
 }
 
 type TypeCombo []TypePtr
@@ -427,7 +446,7 @@ func (f *Func) Randomize() {
 	f.RetType = TypePtr(rand.Intn(len(Types)+1) - 1)
 	argnum := rand.Intn(len(f.Args) + 1)
 	for i := 0; i < argnum; i++ {
-		f.Args[i] = TypePtr(rand.Intn(len(Types)))
+		f.Args[i] = RandomTypePtr()
 	}
 	if argnum < len(f.Args) {
 		f.Args[argnum] = -1
@@ -452,17 +471,39 @@ func (f *Func) GoAnon() string {
 
 func (f *Func) WriteCDecl(w io.Writer) {
 	fmt.Fprintf(w, "%v %v(%v) {\n", f.RetType.CNotation(), f.Name(), f.Args.CArgs(true))
+
+	fmt.Fprintln(w, "\tint sp1, sp2;")
+	fmt.Fprintln(w, "\t"+`asm("mov %%esp, %0\n\t":"=r"(sp1));`)
+
 	fmt.Fprint(w, "\t")
 	if !f.Void() {
-		fmt.Fprint(w, "return ")
+		fmt.Fprintf(w, "%v ret = ", f.RetType.CNotation())
 	}
-	fmt.Fprintf(w, "((%v (*)(%v))ptr)(%v);\n", f.RetType.CNotation(), f.Args.CTypes(), f.Args.List())
+	var attr string
+	if Stdcall {
+		attr = "__attribute__((stdcall)) "
+	}
+	fmt.Fprintf(w, "((%v (%v*)(%v))ptr)(%v);\n", f.RetType.CNotation(), attr, f.Args.CTypes(), f.Args.List())
+
+	fmt.Fprintln(w, "\t"+`asm("mov %%esp, %0\n\t":"=r"(sp2));`)
+	fmt.Fprintln(w, "\tif (sp1 != sp2) {")
+	fmt.Fprintf(w, "\t\t"+`printf("%v: Stack pointers do not match! %%d bytes difference.\n", sp2-sp1);`+"\n", f.Name())
+	fmt.Fprintln(w, "\t\texit(1);")
+	fmt.Fprintln(w, "\t}")
+
+	if !f.Void() {
+		fmt.Fprintln(w, "\treturn ret;")
+	}
 	fmt.Fprint(w, "}\n")
 }
 
 func (f *Func) WriteGoDecl(w io.Writer) {
 	fmt.Fprintf(w, "func %v(%v)%v {\n", f.Name(), f.Args.GoArgs(f), " "+f.RetType.GoNotation())
-	fmt.Fprint(w, "\tptr := callback.New(f)\n")
+	if Stdcall {
+		fmt.Fprint(w, "\tptr := callback.NewStdcall(f)\n")
+	} else {
+		fmt.Fprint(w, "\tptr := callback.New(f)\n")
+	}
 	fmt.Fprint(w, "\t")
 	if !f.Void() {
 		fmt.Fprint(w, "ret := ")
@@ -527,6 +568,8 @@ func NewCallsH() *os.File {
 		panic(err)
 	}
 	WriteWarning(f)
+	fmt.Fprintln(f, "#include <stdlib.h>")
+	fmt.Fprintln(f)
 	return f
 }
 
@@ -538,6 +581,7 @@ func NewCallsGo() *os.File {
 	WriteWarning(f)
 	fmt.Fprintln(f, "package tests")
 	fmt.Fprintln(f)
+	fmt.Fprintln(f, `// #cgo CFLAGS: -O0 -w`)
 	fmt.Fprintln(f, `// #include "calls.h"`)
 	fmt.Fprintln(f, `import "C"`)
 	fmt.Fprintln(f, `import (`)
@@ -590,6 +634,8 @@ var (
 	OnlyGen      bool
 	MaxRandom    uint
 
+	Stdcall bool
+
 	SpecTest string
 	SpecFile string
 )
@@ -601,6 +647,8 @@ func init() {
 	flag.UintVar(&MaxArgs, "arg", 3, "Maximum number of arguments to test")
 	flag.BoolVar(&OnlyGen, "gen", false, "Generate tests but not run")
 	flag.UintVar(&MaxRandom, "rand", 0, "Do not generate functions sequentially, but randomly. Generate up to `n` functions.")
+
+	flag.BoolVar(&Stdcall, "stdcall", false, "Generate tests using stdcall convention (useless on non-x86 machines)")
 
 	flag.StringVar(&SpecTest, "t", "", "Run only specific test, e.g. void:float:ushort")
 	flag.StringVar(&SpecFile, "f", "", "Run specific tests from file, e.g. void:float:ushort\\nvoid:double")
