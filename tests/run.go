@@ -654,7 +654,7 @@ func init() {
 
 	flag.BoolVar(&Stdcall, "stdcall", false, "Generate tests using stdcall convention (useless on non-x86 machines)")
 
-	flag.StringVar(&SpecTest, "t", "", "Run only specific test, e.g. void:float:ushort")
+	flag.StringVar(&SpecTest, "t", "", "Run only specific test, e.g. void:float:ushort,int:int")
 	flag.StringVar(&SpecFile, "f", "", "Run specific tests from file, e.g. void:float:ushort\\nvoid:double")
 }
 
@@ -742,18 +742,20 @@ func RunSpecificFile(filename string) {
 }
 
 func RunSpecificTest(test string) {
-	fn := FuncFromShortNotation(test)
-
 	ch := NewCallsH()
-	fn.WriteCDecl(ch)
-	ch.Close()
-
 	cg := NewCallsGo()
-	fn.WriteGoDecl(cg)
-	cg.Close()
-
 	ctg := NewCallsTestGo()
-	fn.WriteGoTestDecl(ctg)
+
+	funcs := strings.Split(test, ",")
+	for _, ft := range funcs {
+		fn := FuncFromShortNotation(ft)
+		fn.WriteCDecl(ch)
+		fn.WriteGoDecl(cg)
+		fn.WriteGoTestDecl(ctg)
+	}
+
+	ch.Close()
+	cg.Close()
 	ctg.Close()
 
 	success := RunTests(1)
