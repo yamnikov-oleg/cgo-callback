@@ -585,7 +585,7 @@ func NewCallsGo() *os.File {
 	WriteWarning(f)
 	fmt.Fprintln(f, "package tests")
 	fmt.Fprintln(f)
-	fmt.Fprintln(f, `// #cgo CFLAGS: -w`)
+	fmt.Fprintln(f, `// #cgo CFLAGS: -O0 -w`)
 	fmt.Fprintln(f, `// #include "calls.h"`)
 	fmt.Fprintln(f, `import "C"`)
 	fmt.Fprintln(f, `import (`)
