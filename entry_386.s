@@ -6,8 +6,11 @@ cgo_callback_asm_entry:
 	push %ebp
 	mov	%esp,	%ebp
 
-	sub $8, %esp
-	fstpl (%esp)
+	// 8 bytes to receive ST0 value
+	// 1 byte for ST0 set flag
+	sub $9, %esp
+	// Zero the flag
+	movl $0, (%esp)
 	push %edi
 	push %esi
 	push %edx
@@ -32,8 +35,17 @@ cgo_callback_asm_entry:
 	pop %edx
 	pop %esi
 	pop %edi
-	fldl (%esp)
-	add $8, %esp
+
+	// Load ST0, if it was set
+	push %eax
+	// Load and test the set flag
+	mov 4(%esp), %al
+	test %al, %al
+	jz .nostload
+	fldl 5(%esp)
+.nostload:
+	pop %eax
+	add $9, %esp
 
 	push %eax
 	// Stack at this point:

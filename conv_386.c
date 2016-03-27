@@ -131,5 +131,6 @@ void cgo_callback_conv_return(cgo_callback_call_t *call, void *val, int type, in
       val = &t;
     }
     memcpy((char *)call->reg + ST0, val, 8);
+    *((char *)call->reg + ST0_SET_FLAG) = 1;
   }
 }

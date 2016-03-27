@@ -9,4 +9,6 @@
 #define EDX 0x0C
 #define ESI 0x10
 #define EDI 0x14
-#define ST0 0x18
+// Must be set if ST0 was modified and should be loaded
+#define ST0_SET_FLAG 0x18
+#define ST0 0x19
